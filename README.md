@@ -10,7 +10,7 @@ The project assumes access to a field acquisition rig equipped with:
 - **Acquisition Hardware** – An embedded computer (e.g., Raspberry Pi 4) connected via USB or SPI to the sensors.
 - **Timing Reference** – GPS-disciplined clock or NTP-synchronized time source to align field recordings across deployments.
 - **Power Supply** – Regulated 5V/12V supply with surge protection.
-
+ 
 ### Field Deployment Checklist
 
 1. Verify sensor calibration using the calibration script in `tools/calibration/`.
