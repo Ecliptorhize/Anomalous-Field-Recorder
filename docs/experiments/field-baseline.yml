@@ -1,0 +1,5 @@
+domain: field_engineering
+site: test-station
+sample_rate: 1000
+sensor_array: tri-axis-magnetometer
+calibration_date: 2024-11-01

@@ -33,6 +33,23 @@ poetry run pytest
 
 Use the provided Jupyter notebooks in `notebooks/` to explore recorded sessions. Each notebook is tagged with metadata describing the sensor configuration used.
 
+### CLI Quickstart
+
+The `afr` CLI bundles acquisition, processing, reporting, and metadata inspection:
+
+```bash
+# Simulate acquisition
+afr acquire docs/experiments/field-baseline.yml data/raw/field-baseline
+
+# Process and report
+afr process data/raw/field-baseline data/processed/field-baseline
+afr report data/processed/field-baseline
+
+# Inspect configs without running
+afr describe docs/experiments/clinical-lab.yml --json
+afr version
+```
+
 ## Repository Structure
 
 ```
@@ -46,6 +63,17 @@ Use the provided Jupyter notebooks in `notebooks/` to explore recorded sessions.
 ```
 
 > **Note:** Some directories are placeholders until the corresponding modules are implemented. Ensure `.gitignore` rules prevent accidental commits of large raw datasets.
+
+## Cross-Domain Profiles
+
+Sample configurations covering field engineering, medical imaging, clinical lab, and chemistry lab pipelines live in `docs/experiments/`:
+
+- `field-baseline.yml` – tri-axis magnetometer baseline capture
+- `medical-imaging.yml` – MRI metadata stub
+- `clinical-lab.yml` – CBC/hematology analyzer run
+- `chemistry-lab.yml` – LC-MS pesticide screen
+
+Processing will report domain and instrument details along with quality flags highlighting missing required or suggested metadata.
 
 ## Usage Overview
 
@@ -71,6 +99,19 @@ CI should run the following jobs:
 - Static typing: `poetry run mypy src`
 - Testing: `poetry run pytest`
 
+## Container Usage
+
+Build and run with Docker:
+
+```bash
+docker compose build
+docker compose run --rm afr afr acquire docs/experiments/field-baseline.yml /app/data/raw/field-baseline
+docker compose run --rm afr afr process /app/data/raw/field-baseline /app/data/processed/field-baseline
+docker compose run --rm afr afr report /app/data/processed/field-baseline
+```
+
+The compose file mounts `./data` and `./docs` into the container for sharing configs and artifacts.
+
 ## Community Health
 
 - Review the [Code of Conduct](CODE_OF_CONDUCT.md).
@@ -80,4 +121,3 @@ CI should run the following jobs:
 ## License
 
 This project is licensed under the terms of the [MIT License](LICENSE).
-

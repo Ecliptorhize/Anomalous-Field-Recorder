@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anomalous-field-recorder"
-version = "0.1.0"
+version = "0.2.0"
 description = "Toolkit for logging and reporting anomalous electromagnetic field measurements"
 authors = [{ name = "Field Research Team" }]
 readme = "README.md"
@@ -15,6 +15,9 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
+
+[project.scripts]
+afr = "anomalous_field_recorder.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

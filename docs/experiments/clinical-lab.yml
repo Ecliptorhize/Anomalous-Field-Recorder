@@ -1,0 +1,7 @@
+domain: clinical_lab
+lab_id: medlab-12
+instrument: blood-panel-analyzer
+sample_type: plasma
+analyte: cbc
+panel: hematology
+safety_level: biosafety-2

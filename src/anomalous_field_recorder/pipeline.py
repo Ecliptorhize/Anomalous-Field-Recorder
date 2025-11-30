@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from .config import load_experiment_config
+from .domains import summarize_domain
 
 
 DEFAULT_METADATA_FILE = "metadata.json"
@@ -26,10 +27,13 @@ def simulate_acquisition(config_path: str | Path, output_dir: str | Path) -> Dic
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    domain_profile = summarize_domain(config)
+
     metadata = {
         "config": config,
         "status": "acquired",
         "samples": [],
+        "domain_profile": domain_profile,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -58,11 +62,16 @@ def process_dataset(raw_dir: str | Path, processed_dir: str | Path) -> Dict[str,
     config = metadata.get("config", {}) if isinstance(metadata.get("config", {}), dict) else {}
     samples = metadata.get("samples", []) if isinstance(metadata.get("samples", []), list) else []
 
+    domain_profile = summarize_domain(config)
+
     summary = {
         "source": str(raw_dir.resolve()),
         "records": len(samples),
         "config_keys": sorted(config.keys()),
         "status": metadata.get("status", "unknown"),
+        "domain": domain_profile["domain"],
+        "instrument": domain_profile["instrument"],
+        "quality_flags": domain_profile["quality_flags"],
     }
 
     summary_path = processed_dir / DEFAULT_SUMMARY_FILE

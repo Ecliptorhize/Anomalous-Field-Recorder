@@ -29,6 +29,8 @@ def generate_report(processed_dir: str | Path, output_path: str | Path | None = 
         f"Source: {summary.get('source', 'unknown')}",
         f"Status: {summary.get('status', 'unknown')}",
         f"Records: {summary.get('records', 0)}",
+        f"Domain: {summary.get('domain', 'field_engineering')}",
+        f"Instrument: {summary.get('instrument', 'unspecified')}",
         "",
         "## Configuration Keys",
     ]
@@ -38,6 +40,14 @@ def generate_report(processed_dir: str | Path, output_path: str | Path | None = 
         report_lines.extend(f"- {key}" for key in config_keys)
     else:
         report_lines.append("(none recorded)")
+
+    report_lines.append("")
+    report_lines.append("## Quality Flags")
+    quality_flags = summary.get("quality_flags") or []
+    if quality_flags:
+        report_lines.extend(f"- {flag}" for flag in quality_flags)
+    else:
+        report_lines.append("(no quality flags)")
 
     output_path = Path(output_path) if output_path else processed_dir / "report.md"
     output_path.write_text("\n".join(report_lines), encoding="utf-8")

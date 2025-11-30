@@ -1,0 +1,8 @@
+domain: medical_imaging
+lab_id: radiology-7
+instrument: mri-3t
+modality: mri
+exam_id: test-exam-001
+patient_id: anon-0001
+sequence: t1w
+safety_level: mri-safe

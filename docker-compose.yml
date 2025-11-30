@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  afr:
+    build: .
+    image: anomalous-field-recorder:latest
+    command: ["afr", "version"]
+    volumes:
+      - ./data:/app/data
+      - ./docs:/app/docs

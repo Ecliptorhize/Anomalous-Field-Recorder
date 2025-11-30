@@ -1,0 +1,7 @@
+domain: chemistry_lab
+lab_id: chem-42
+instrument: lc-ms
+method: pesticide-screen
+chromatography: uplc
+reagent_lot: rl-1098
+calibration_curve: daily-std
