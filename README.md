@@ -37,6 +37,7 @@ Notebook references:
 
 - `notebooks/01_quickstart.ipynb` – end-to-end acquisition → processing → report walkthrough.
 - `notebooks/02_neuro_bandpower.ipynb` – EEG/LFP-style synthetic signal generation and bandpower analysis.
+- `notebooks/03_neuro_connectivity.ipynb` – coherence, phase-locking value, and event-locked peaks for synthetic EEG.
 
 ### CLI Quickstart
 

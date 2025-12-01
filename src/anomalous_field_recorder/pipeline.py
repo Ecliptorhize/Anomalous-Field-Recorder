@@ -14,10 +14,15 @@ from .logging_utils import log_event
 from .registry import record_run
 from .signals import (
     apply_filters,
-    compute_signal_metrics,
     compute_bandpower,
+    compute_coherence,
+    compute_event_locked_peak,
+    compute_phase_locking_value,
+    compute_spectral_entropy,
+    compute_signal_metrics,
     compute_spectral_metrics,
     generate_synthetic_series,
+    generate_multichannel_eeg,
     score_anomalies,
 )
 
@@ -52,13 +57,26 @@ def simulate_acquisition(
     domain_profile = summarize_domain(config)
 
     samples: list[float] = []
+    channels: list[list[float]] = []
+    events: list[float] = []
     if generate_samples:
-        samples = generate_synthetic_series(duration_s=duration_s, sample_rate=sample_rate)
+        if domain_profile["domain"] == "computational_neuroscience":
+            num_channels = int(config.get("channels", 2) or 2)
+            channels, events = generate_multichannel_eeg(
+                num_channels=num_channels,
+                duration_s=duration_s,
+                sample_rate=sample_rate,
+            )
+            samples = channels[0] if channels else []
+        else:
+            samples = generate_synthetic_series(duration_s=duration_s, sample_rate=sample_rate)
 
     metadata = {
         "config": config,
         "status": "acquired",
         "samples": samples,
+        "channels": channels,
+        "events_s": events,
         "domain_profile": domain_profile,
         "validation": validation.as_dict(),
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -105,6 +123,8 @@ def process_dataset(
 
     config = metadata.get("config", {}) if isinstance(metadata.get("config", {}), dict) else {}
     samples = metadata.get("samples", []) if isinstance(metadata.get("samples", []), list) else []
+    channels = metadata.get("channels", []) if isinstance(metadata.get("channels", []), list) else []
+    events_s = metadata.get("events_s", []) if isinstance(metadata.get("events_s", []), list) else []
     sample_rate = float(config.get("sample_rate", 1_000))
 
     domain_profile = summarize_domain(config)
@@ -114,6 +134,25 @@ def process_dataset(
     spectral = compute_spectral_metrics(filtered_samples or samples, sample_rate)
     anomalies = score_anomalies(filtered_samples or samples)
     bandpower = compute_bandpower(filtered_samples or samples, sample_rate)
+    spectral_entropy = compute_spectral_entropy(filtered_samples or samples, sample_rate)
+
+    neuro: Dict[str, Any] = {}
+    if domain_profile["domain"] == "computational_neuroscience" and channels:
+        bp_per_channel = [compute_bandpower(ch, sample_rate) for ch in channels]
+        entropy_per_channel = [compute_spectral_entropy(ch, sample_rate) for ch in channels]
+        coherence = compute_coherence(channels, sample_rate) if len(channels) > 1 else []
+        plv = compute_phase_locking_value(channels) if len(channels) > 1 else 0.0
+        erp_peak = [
+            compute_event_locked_peak(ch, events_s, sample_rate) for ch in channels
+        ] if events_s else []
+        neuro = {
+            "bandpower_per_channel": bp_per_channel,
+            "spectral_entropy": entropy_per_channel,
+            "coherence": coherence,
+            "phase_locking_value": plv,
+            "erp_peak": erp_peak,
+            "events": len(events_s),
+        }
 
     summary = {
         "source": str(raw_dir.resolve()),
@@ -127,7 +166,9 @@ def process_dataset(
         "spectral": spectral,
         "anomalies": anomalies,
         "bandpower": bandpower,
+        "spectral_entropy": spectral_entropy,
         "filters": {"band": band, "notch": notch},
+        "neuro": neuro,
     }
 
     summary_path = processed_dir / DEFAULT_SUMMARY_FILE

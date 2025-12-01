@@ -10,9 +10,14 @@ from .reporting import generate_report
 from .signals import (
     apply_filters,
     compute_bandpower,
+    compute_coherence,
+    compute_event_locked_peak,
+    compute_phase_locking_value,
+    compute_spectral_entropy,
     compute_signal_metrics,
     compute_spectral_metrics,
     generate_synthetic_series,
+    generate_multichannel_eeg,
     ingest_samples,
     score_anomalies,
 )
@@ -21,16 +26,21 @@ from .service import create_app
 try:
     __version__ = metadata.version("anomalous-field-recorder")
 except metadata.PackageNotFoundError:  # pragma: no cover - fallback for editable installs
-    __version__ = "0.3.0"
+    __version__ = "0.4.0"
 
 __all__ = [
     "load_experiment_config",
     "validate_config",
     "validate_config_file",
     "generate_synthetic_series",
+    "generate_multichannel_eeg",
     "compute_signal_metrics",
     "compute_spectral_metrics",
     "compute_bandpower",
+    "compute_spectral_entropy",
+    "compute_coherence",
+    "compute_phase_locking_value",
+    "compute_event_locked_peak",
     "apply_filters",
     "ingest_samples",
     "score_anomalies",

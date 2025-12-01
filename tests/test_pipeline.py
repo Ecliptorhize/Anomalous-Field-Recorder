@@ -7,10 +7,15 @@ import pytest
 from anomalous_field_recorder import (
     apply_filters,
     compute_bandpower,
+    compute_coherence,
+    compute_event_locked_peak,
+    compute_phase_locking_value,
+    compute_spectral_entropy,
     compute_signal_metrics,
     create_app,
     generate_report,
     generate_synthetic_series,
+    generate_multichannel_eeg,
     list_runs,
     load_experiment_config,
     process_dataset,
@@ -108,6 +113,18 @@ def test_bandpower_computation() -> None:
     series = generate_synthetic_series(duration_s=1.0, sample_rate=256.0, components=[{"freq": 10.0, "amplitude": 1.0}], noise_std=0.0)
     bp = compute_bandpower(series, sample_rate=256.0)
     assert bp["alpha"] > 0
+
+
+def test_neuro_multichannel_features() -> None:
+    channels, events = generate_multichannel_eeg(num_channels=2, duration_s=1.0, sample_rate=256.0)
+    coh = compute_coherence(channels, sample_rate=256.0)
+    plv = compute_phase_locking_value(channels)
+    entropy = compute_spectral_entropy(channels[0], sample_rate=256.0)
+    peak = compute_event_locked_peak(channels[0], events, sample_rate=256.0)
+    assert coh and coh[0][1] >= 0
+    assert plv >= 0
+    assert entropy > 0
+    assert peak >= 0
 
 
 def test_registry_round_trip(tmp_path: Path) -> None:

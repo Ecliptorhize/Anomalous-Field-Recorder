@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict
 
+import numpy as np
+
 from .pipeline import DEFAULT_SUMMARY_FILE
 
 
@@ -68,6 +70,14 @@ def generate_report(processed_dir: str | Path, output_path: str | Path | None = 
         report_lines.append("(no spectral data)")
 
     report_lines.append("")
+    report_lines.append("## Spectral Entropy")
+    entropy = summary.get("spectral_entropy")
+    if entropy is not None:
+        report_lines.append(f"- spectral_entropy: {entropy}")
+    else:
+        report_lines.append("(no entropy computed)")
+
+    report_lines.append("")
     report_lines.append("## Bandpower")
     bandpower = summary.get("bandpower") or {}
     if bandpower:
@@ -94,6 +104,18 @@ def generate_report(processed_dir: str | Path, output_path: str | Path | None = 
         report_lines.append(f"- notch: {filters.get('notch')}")
     else:
         report_lines.append("(no filters)")
+
+    neuro = summary.get("neuro") or {}
+    if neuro:
+        report_lines.append("")
+        report_lines.append("## Computational Neuroscience")
+        report_lines.append(f"- channels: {len(neuro.get('bandpower_per_channel', []))}")
+        if neuro.get("coherence"):
+            report_lines.append(f"- coherence avg: {round(float(np.nanmean(neuro['coherence'])), 4)}")
+        if neuro.get("phase_locking_value") is not None:
+            report_lines.append(f"- phase_locking_value: {neuro.get('phase_locking_value')}")
+        if neuro.get("events") is not None:
+            report_lines.append(f"- events: {neuro.get('events')}")
 
     output_path = Path(output_path) if output_path else processed_dir / "report.md"
     output_path.write_text("\n".join(report_lines), encoding="utf-8")

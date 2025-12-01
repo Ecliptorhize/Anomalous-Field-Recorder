@@ -111,6 +111,110 @@ def compute_bandpower(
     return bandpower
 
 
+def compute_spectral_entropy(samples: Sequence[float], sample_rate: float) -> float:
+    """Compute spectral entropy from Welch PSD."""
+
+    if not samples or sample_rate <= 0:
+        return 0.0
+    arr = np.asarray(samples, dtype=float)
+    freqs, psd = signal.welch(arr, fs=sample_rate, nperseg=min(256, len(arr)))
+    psd = psd + 1e-12  # avoid log(0)
+    psd_norm = psd / np.sum(psd)
+    entropy = -np.sum(psd_norm * np.log2(psd_norm))
+    return float(entropy)
+
+
+def compute_coherence(channels: Sequence[Sequence[float]], sample_rate: float) -> List[List[float]]:
+    """Compute pairwise magnitude-squared coherence between channels."""
+
+    if len(channels) < 2 or sample_rate <= 0:
+        return []
+    n = len(channels)
+    matrix = [[0.0 for _ in range(n)] for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            f, cxy = signal.coherence(
+                np.asarray(channels[i], dtype=float),
+                np.asarray(channels[j], dtype=float),
+                fs=sample_rate,
+                nperseg=min(256, len(channels[i]), len(channels[j])),
+            )
+            matrix[i][j] = matrix[j][i] = float(np.nanmean(cxy) if cxy.size else 0.0)
+    return matrix
+
+
+def compute_phase_locking_value(channels: Sequence[Sequence[float]]) -> float:
+    """Compute simple phase-locking value between the first two channels."""
+
+    if len(channels) < 2:
+        return 0.0
+    sig_a = signal.hilbert(np.asarray(channels[0], dtype=float))
+    sig_b = signal.hilbert(np.asarray(channels[1], dtype=float))
+    phase_diff = np.angle(sig_a) - np.angle(sig_b)
+    plv = np.abs(np.mean(np.exp(1j * phase_diff)))
+    return float(plv)
+
+
+def compute_event_locked_peak(
+    channel: Sequence[float],
+    events_s: Sequence[float],
+    sample_rate: float,
+    window: tuple[float, float] = (-0.1, 0.4),
+) -> float:
+    """Compute maximum absolute amplitude in a window around events."""
+
+    if not events_s or sample_rate <= 0:
+        return 0.0
+    arr = np.asarray(channel, dtype=float)
+    pre, post = window
+    max_vals: list[float] = []
+    for t in events_s:
+        start = int(max((t + pre) * sample_rate, 0))
+        end = int(min((t + post) * sample_rate, len(arr)))
+        if start < end:
+            segment = arr[start:end]
+            max_vals.append(float(np.max(np.abs(segment))))
+    return float(np.mean(max_vals) if max_vals else 0.0)
+
+
+def generate_multichannel_eeg(
+    num_channels: int,
+    duration_s: float,
+    sample_rate: float,
+    *,
+    base_components: Sequence[Mapping[str, float]] | None = None,
+    noise_std: float = 0.05,
+) -> tuple[List[List[float]], List[float]]:
+    """Generate synthetic multi-channel EEG-like data and event timestamps."""
+
+    if base_components is None:
+        base_components = [
+            {"freq": 2.5, "amplitude": 0.4},
+            {"freq": 6.0, "amplitude": 0.5},
+            {"freq": 10.0, "amplitude": 1.0},
+            {"freq": 20.0, "amplitude": 0.2},
+        ]
+
+    channels: List[List[float]] = []
+    for ch in range(num_channels):
+        # add slight frequency jitter per channel
+        comps = [
+            {"freq": comp["freq"] * (1 + 0.02 * ch), "amplitude": comp["amplitude"], "phase": 0.1 * ch}
+            for comp in base_components
+        ]
+        series = generate_synthetic_series(
+            duration_s=duration_s,
+            sample_rate=sample_rate,
+            components=comps,
+            noise_std=noise_std,
+        )
+        channels.append(series)
+
+    # synthetic events every second starting at 0.5s
+    events = [t for t in np.arange(0.5, duration_s, 1.0)]
+    return channels, events
+
+
 def apply_filters(
     samples: Sequence[float],
     sample_rate: float,
