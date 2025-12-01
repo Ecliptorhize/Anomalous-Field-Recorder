@@ -33,6 +33,11 @@ poetry run pytest
 
 Use the provided Jupyter notebooks in `notebooks/` to explore recorded sessions. Each notebook is tagged with metadata describing the sensor configuration used.
 
+Notebook references:
+
+- `notebooks/01_quickstart.ipynb` – end-to-end acquisition → processing → report walkthrough.
+- `notebooks/02_neuro_bandpower.ipynb` – EEG/LFP-style synthetic signal generation and bandpower analysis.
+
 ### CLI Quickstart
 
 The `afr` CLI bundles acquisition, processing, reporting, and metadata inspection:
