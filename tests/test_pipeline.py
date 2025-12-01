@@ -6,6 +6,7 @@ import pytest
 
 from anomalous_field_recorder import (
     apply_filters,
+    compute_bandpower,
     compute_signal_metrics,
     create_app,
     generate_report,
@@ -101,6 +102,12 @@ def test_signal_metrics_and_filtering() -> None:
     filtered = apply_filters(series, sample_rate=100.0, band=(1.0, 10.0))
     metrics = compute_signal_metrics(filtered)
     assert metrics["rms"] > 0
+
+
+def test_bandpower_computation() -> None:
+    series = generate_synthetic_series(duration_s=1.0, sample_rate=256.0, components=[{"freq": 10.0, "amplitude": 1.0}], noise_std=0.0)
+    bp = compute_bandpower(series, sample_rate=256.0)
+    assert bp["alpha"] > 0
 
 
 def test_registry_round_trip(tmp_path: Path) -> None:

@@ -33,6 +33,12 @@ DOMAIN_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "optional": {"reagent_lot": str, "calibration_curve": str, "chromatography": str},
         "defaults": {"calibration_curve": "not-provided"},
     },
+    "computational_neuroscience": {
+        "required": {"subject_id": str, "session_id": str, "modality": str, "sample_rate": (int, float)},
+        "optional": {"channels": (str, int), "brain_region": str, "task": str},
+        "defaults": {"channels": "unspecified"},
+        "constraints": {"sample_rate": {"min": 10, "max": 100_000}},
+    },
 }
 
 

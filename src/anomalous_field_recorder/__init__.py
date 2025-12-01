@@ -9,6 +9,7 @@ from .registry import init_registry, list_runs, purge_runs, record_run
 from .reporting import generate_report
 from .signals import (
     apply_filters,
+    compute_bandpower,
     compute_signal_metrics,
     compute_spectral_metrics,
     generate_synthetic_series,
@@ -29,6 +30,7 @@ __all__ = [
     "generate_synthetic_series",
     "compute_signal_metrics",
     "compute_spectral_metrics",
+    "compute_bandpower",
     "apply_filters",
     "ingest_samples",
     "score_anomalies",

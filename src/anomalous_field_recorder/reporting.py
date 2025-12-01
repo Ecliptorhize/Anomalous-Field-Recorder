@@ -68,6 +68,15 @@ def generate_report(processed_dir: str | Path, output_path: str | Path | None = 
         report_lines.append("(no spectral data)")
 
     report_lines.append("")
+    report_lines.append("## Bandpower")
+    bandpower = summary.get("bandpower") or {}
+    if bandpower:
+        for key, value in bandpower.items():
+            report_lines.append(f"- {key}: {value}")
+    else:
+        report_lines.append("(no bandpower data)")
+
+    report_lines.append("")
     report_lines.append("## Anomalies")
     anomalies = summary.get("anomalies") or {}
     if anomalies:

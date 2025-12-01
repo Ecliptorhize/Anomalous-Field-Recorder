@@ -74,6 +74,7 @@ Sample configurations covering field engineering, medical imaging, clinical lab,
 - `medical-imaging.yml` – MRI metadata stub
 - `clinical-lab.yml` – CBC/hematology analyzer run
 - `chemistry-lab.yml` – LC-MS pesticide screen
+- `neuro-eeg.yml` – computational neuroscience EEG session
 
 Processing will report domain and instrument details along with quality flags highlighting missing required or suggested metadata.
 
@@ -81,6 +82,7 @@ Processing will report domain and instrument details along with quality flags hi
 
 - **Validation** – Domain-aware schema validation with defaults via `afr validate <config>`.
 - **Signal analysis** – Synthetic sample generation during acquisition, band/notch filters, FFT-derived spectral summaries, anomaly scoring, and rich Markdown reports.
+- **Neuroscience bandpower** – Welch PSD-derived bandpower (delta/theta/alpha/beta/gamma) for EEG/LFP datasets is included in processed summaries and reports.
 - **Registry** – SQLite-backed run registry (`--registry path/to/db.sqlite`) plus `afr runs` to inspect history.
 - **API** – FastAPI service `afr serve --host 0.0.0.0 --port 8000` exposing `/health`, `/version`, `/validate`, `/acquire`, `/process`, `/report`, and `/runs`.
 - **Structured logging** – Enable JSON logs with `AFR_JSON_LOGS=true` or `--json-logs` on CLI.

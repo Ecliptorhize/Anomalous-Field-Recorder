@@ -1,0 +1,8 @@
+domain: computational_neuroscience
+subject_id: subj-001
+session_id: ses-202
+modality: eeg
+sample_rate: 512
+channels: 32
+brain_region: frontal
+task: resting-state

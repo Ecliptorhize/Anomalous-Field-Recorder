@@ -76,6 +76,41 @@ def compute_spectral_metrics(samples: Sequence[float], sample_rate: float) -> Ma
     return {"dominant_freq": dominant_freq, "spectral_centroid": spectral_centroid}
 
 
+def compute_bandpower(
+    samples: Sequence[float],
+    sample_rate: float,
+    bands: Mapping[str, tuple[float, float]] | None = None,
+) -> Mapping[str, float]:
+    """Compute bandpower across named frequency bands using Welch PSD."""
+
+    if not samples or sample_rate <= 0:
+        return {}
+
+    if bands is None:
+        bands = {
+            "delta": (0.5, 4),
+            "theta": (4, 8),
+            "alpha": (8, 13),
+            "beta": (13, 30),
+            "gamma": (30, 80),
+        }
+
+    arr = np.asarray(samples, dtype=float)
+    freqs, psd = signal.welch(arr, fs=sample_rate, nperseg=min(256, len(arr)))
+    bandpower: dict[str, float] = {}
+
+    for name, (low, high) in bands.items():
+        mask = (freqs >= low) & (freqs <= high)
+        bandpower[name] = float(np.trapz(psd[mask], freqs[mask])) if np.any(mask) else 0.0
+
+    total_power = float(np.trapz(psd, freqs)) if freqs.size else 0.0
+    if total_power > 0:
+        for name, power in list(bandpower.items()):
+            bandpower[f"{name}_rel"] = power / total_power
+
+    return bandpower
+
+
 def apply_filters(
     samples: Sequence[float],
     sample_rate: float,

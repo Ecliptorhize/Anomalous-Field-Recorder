@@ -22,6 +22,10 @@ DOMAIN_PROFILES: Dict[str, Dict[str, Iterable[str]]] = {
         "required": ("instrument", "method", "lab_id"),
         "suggested": ("reagent_lot", "calibration_curve"),
     },
+    "computational_neuroscience": {
+        "required": ("subject_id", "session_id", "modality", "sample_rate"),
+        "suggested": ("channels", "brain_region", "task"),
+    },
 }
 
 
@@ -39,6 +43,8 @@ def classify_domain(config: Mapping[str, Any]) -> str:
         return "clinical_lab"
     if {"chromatography", "mass_spec", "method"} & keys:
         return "chemistry_lab"
+    if {"eeg", "ephys", "lfp", "spike", "brain_region"} & keys or {"subject_id", "session_id"} <= keys:
+        return "computational_neuroscience"
     return "field_engineering"
 
 
@@ -75,4 +81,3 @@ def summarize_domain(config: Mapping[str, Any]) -> Dict[str, Any]:
         "missing_suggested": missing_suggested,
         "quality_flags": quality_flags,
     }
-

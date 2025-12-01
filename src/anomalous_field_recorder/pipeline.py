@@ -15,6 +15,7 @@ from .registry import record_run
 from .signals import (
     apply_filters,
     compute_signal_metrics,
+    compute_bandpower,
     compute_spectral_metrics,
     generate_synthetic_series,
     score_anomalies,
@@ -112,6 +113,7 @@ def process_dataset(
     metrics = compute_signal_metrics(filtered_samples or samples)
     spectral = compute_spectral_metrics(filtered_samples or samples, sample_rate)
     anomalies = score_anomalies(filtered_samples or samples)
+    bandpower = compute_bandpower(filtered_samples or samples, sample_rate)
 
     summary = {
         "source": str(raw_dir.resolve()),
@@ -124,6 +126,7 @@ def process_dataset(
         "metrics": metrics,
         "spectral": spectral,
         "anomalies": anomalies,
+        "bandpower": bandpower,
         "filters": {"band": band, "notch": notch},
     }
 
