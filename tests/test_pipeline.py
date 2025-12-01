@@ -5,11 +5,18 @@ from pathlib import Path
 import pytest
 
 from anomalous_field_recorder import (
+    apply_filters,
+    compute_signal_metrics,
+    create_app,
     generate_report,
+    generate_synthetic_series,
+    list_runs,
     load_experiment_config,
     process_dataset,
+    record_run,
     simulate_acquisition,
     summarize_domain,
+    validate_config,
 )
 
 
@@ -80,3 +87,34 @@ def test_summarize_domain_highlights_missing_fields() -> None:
     profile = summarize_domain({"modality": "mri", "patient_id": "anon"})
     assert profile["domain"] == "medical_imaging"
     assert "exam_id" in profile["missing_required"]
+
+
+def test_validate_config_applies_defaults() -> None:
+    result = validate_config({"domain": "clinical_lab", "sample_type": "serum", "analyte": "cbc", "lab_id": "lab"})
+    assert result.domain == "clinical_lab"
+    assert "panel" in result.normalized
+    assert not result.errors
+
+
+def test_signal_metrics_and_filtering() -> None:
+    series = generate_synthetic_series(duration_s=0.1, sample_rate=100.0, components=[{"freq": 5.0, "amplitude": 1.0}], noise_std=0.0)
+    filtered = apply_filters(series, sample_rate=100.0, band=(1.0, 10.0))
+    metrics = compute_signal_metrics(filtered)
+    assert metrics["rms"] > 0
+
+
+def test_registry_round_trip(tmp_path: Path) -> None:
+    db = tmp_path / "registry.db"
+    record_id = record_run(db, "acquire", "path", "ok", "field_engineering")
+    runs = list_runs(db)
+    assert runs[0].id == record_id
+
+
+def test_service_health_endpoint(tmp_path: Path) -> None:
+    app = create_app(registry_path=tmp_path / "registry.db")
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "ok"

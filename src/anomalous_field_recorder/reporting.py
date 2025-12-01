@@ -49,6 +49,43 @@ def generate_report(processed_dir: str | Path, output_path: str | Path | None = 
     else:
         report_lines.append("(no quality flags)")
 
+    report_lines.append("")
+    report_lines.append("## Signal Metrics")
+    metrics = summary.get("metrics") or {}
+    if metrics:
+        for key, value in metrics.items():
+            report_lines.append(f"- {key}: {value}")
+    else:
+        report_lines.append("(no metrics)")
+
+    report_lines.append("")
+    report_lines.append("## Spectral Summary")
+    spectral = summary.get("spectral") or {}
+    if spectral:
+        for key, value in spectral.items():
+            report_lines.append(f"- {key}: {value}")
+    else:
+        report_lines.append("(no spectral data)")
+
+    report_lines.append("")
+    report_lines.append("## Anomalies")
+    anomalies = summary.get("anomalies") or {}
+    if anomalies:
+        report_lines.append(f"- count: {anomalies.get('count', 0)}")
+        report_lines.append(f"- threshold: {anomalies.get('threshold', 'n/a')}")
+        report_lines.append(f"- indices: {anomalies.get('indices', [])}")
+    else:
+        report_lines.append("(no anomalies detected)")
+
+    filters = summary.get("filters") or {}
+    report_lines.append("")
+    report_lines.append("## Filters Applied")
+    if filters.get("band") or filters.get("notch"):
+        report_lines.append(f"- band: {filters.get('band')}")
+        report_lines.append(f"- notch: {filters.get('notch')}")
+    else:
+        report_lines.append("(no filters)")
+
     output_path = Path(output_path) if output_path else processed_dir / "report.md"
     output_path.write_text("\n".join(report_lines), encoding="utf-8")
     return output_path

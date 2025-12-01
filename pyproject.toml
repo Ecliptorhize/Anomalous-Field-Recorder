@@ -4,14 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anomalous-field-recorder"
-version = "0.2.0"
+version = "0.3.0"
 description = "Toolkit for logging and reporting anomalous electromagnetic field measurements"
 authors = [{ name = "Field Research Team" }]
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 keywords = ["sensors", "analysis", "anomaly"]
-dependencies = []
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pandas>=2.1",
+    "matplotlib>=3.8",
+    "fastapi>=0.110",
+    "uvicorn>=0.23",
+    "httpx>=0.24",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]

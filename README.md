@@ -47,6 +47,8 @@ afr report data/processed/field-baseline
 
 # Inspect configs without running
 afr describe docs/experiments/clinical-lab.yml --json
+afr validate docs/experiments/clinical-lab.yml
+afr analyze data/raw/samples.csv --sample-rate 2000 --value-column voltage --json
 afr version
 ```
 
@@ -74,6 +76,14 @@ Sample configurations covering field engineering, medical imaging, clinical lab,
 - `chemistry-lab.yml` – LC-MS pesticide screen
 
 Processing will report domain and instrument details along with quality flags highlighting missing required or suggested metadata.
+
+## Advanced Capabilities
+
+- **Validation** – Domain-aware schema validation with defaults via `afr validate <config>`.
+- **Signal analysis** – Synthetic sample generation during acquisition, band/notch filters, FFT-derived spectral summaries, anomaly scoring, and rich Markdown reports.
+- **Registry** – SQLite-backed run registry (`--registry path/to/db.sqlite`) plus `afr runs` to inspect history.
+- **API** – FastAPI service `afr serve --host 0.0.0.0 --port 8000` exposing `/health`, `/version`, `/validate`, `/acquire`, `/process`, `/report`, and `/runs`.
+- **Structured logging** – Enable JSON logs with `AFR_JSON_LOGS=true` or `--json-logs` on CLI.
 
 ## Usage Overview
 
