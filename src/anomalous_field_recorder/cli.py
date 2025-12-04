@@ -14,7 +14,17 @@ from .pipeline import process_dataset, simulate_acquisition
 from .registry import list_runs
 from .reporting import generate_report
 from .service import create_app
-from .signals import compute_signal_metrics, compute_spectral_metrics, ingest_samples, score_anomalies
+from .signals import (
+    apply_filters,
+    compute_bandpower,
+    compute_signal_metrics,
+    compute_spectral_entropy,
+    compute_spectral_metrics,
+    generate_multichannel_eeg,
+    generate_synthetic_series,
+    ingest_samples,
+    score_anomalies,
+)
 
 
 def _print_result(result: Any, as_json: bool) -> None:
@@ -67,7 +77,42 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("samples", type=Path, help="Path to CSV/JSON/JSONL samples")
     analyze.add_argument("--sample-rate", type=float, default=1000.0, help="Sample rate of the data")
     analyze.add_argument("--value-column", type=str, help="Column name for CSV inputs")
+    analyze.add_argument("--band", type=float, nargs=2, metavar=("LOW", "HIGH"), help="Bandpass filter range")
+    analyze.add_argument("--notch", type=float, help="Notch filter frequency")
+    analyze.add_argument("--anomaly-threshold", type=float, default=3.5, help="Z-score threshold for anomalies")
+    analyze.add_argument("--output", type=Path, help="Optional path to write analysis JSON")
     analyze.add_argument("--json", action="store_true", help="Emit analysis as JSON")
+
+    synth = subparsers.add_parser("synth", help="Generate synthetic samples for testing")
+    synth.add_argument("--duration-s", type=float, default=1.0, help="Duration of synthetic capture")
+    synth.add_argument("--sample-rate", type=float, default=1000.0, help="Sample rate for synthetic capture")
+    synth.add_argument(
+        "--component",
+        action="append",
+        nargs=2,
+        metavar=("FREQ", "AMPLITUDE"),
+        type=float,
+        help="Sinusoid component (freq Hz, amplitude). Repeat to add multiple components.",
+    )
+    synth.add_argument("--noise-std", type=float, default=0.02, help="Noise standard deviation")
+    synth.add_argument(
+        "--channels",
+        type=int,
+        default=0,
+        help="Number of EEG-like channels to generate (0 for single-channel)",
+    )
+    synth.add_argument("--output", type=Path, help="Optional path to write synthetic samples (JSON)")
+    synth.add_argument("--json", action="store_true", help="Emit generated samples as JSON to stdout")
+
+    normalize = subparsers.add_parser("normalize", help="Normalize a config and apply defaults")
+    normalize.add_argument("config", type=Path, help="Path to experiment configuration (YAML or JSON)")
+    normalize.add_argument("--output", type=Path, help="Optional path to write normalized config (JSON)")
+    normalize.add_argument(
+        "--include-messages",
+        action="store_true",
+        help="Include validation errors and warnings alongside normalized config",
+    )
+    normalize.add_argument("--json", action="store_true", help="Emit normalized config as JSON")
 
     serve = subparsers.add_parser("serve", help="Run FastAPI service")
     serve.add_argument("--host", default="0.0.0.0")
@@ -138,11 +183,78 @@ def main(argv: Sequence[str] | None = None) -> None:
         _print_result(result.as_dict(), as_json=args.json)
     elif args.command == "analyze":
         samples = ingest_samples(args.samples, value_column=args.value_column)
-        metrics = compute_signal_metrics(samples)
-        spectral = compute_spectral_metrics(samples, args.sample_rate)
-        anomalies = score_anomalies(samples)
-        analysis = {"metrics": metrics, "spectral": spectral, "anomalies": anomalies}
-        _print_result(analysis, as_json=args.json)
+        band = tuple(args.band) if args.band else None
+        filtered = apply_filters(samples, args.sample_rate, band=band, notch=args.notch) if (band or args.notch) else samples
+        metrics = compute_signal_metrics(filtered)
+        spectral = compute_spectral_metrics(filtered, args.sample_rate)
+        anomalies = score_anomalies(filtered, z_threshold=args.anomaly_threshold)
+        bandpower = compute_bandpower(filtered, args.sample_rate)
+        entropy = compute_spectral_entropy(filtered, args.sample_rate)
+        analysis = {
+            "metrics": metrics,
+            "spectral": spectral,
+            "bandpower": bandpower,
+            "spectral_entropy": entropy,
+            "anomalies": anomalies,
+            "filters": {"band": args.band, "notch": args.notch},
+        }
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(analysis, indent=2), encoding="utf-8")
+            print(f"Wrote analysis to {args.output}")
+        else:
+            _print_result(analysis, as_json=args.json)
+    elif args.command == "synth":
+        if args.channels < 0:
+            raise SystemExit("Number of channels cannot be negative.")
+        components = [{"freq": freq, "amplitude": amp} for freq, amp in args.component] if args.component else None
+        if args.channels:
+            channels, events = generate_multichannel_eeg(
+                num_channels=args.channels,
+                duration_s=args.duration_s,
+                sample_rate=args.sample_rate,
+                base_components=components,
+                noise_std=args.noise_std,
+            )
+            payload: Any = {
+                "channels": channels,
+                "events_s": events,
+                "sample_rate": args.sample_rate,
+                "duration_s": args.duration_s,
+            }
+            summary_msg = f"{len(channels)} channels with {len(events)} events"
+        else:
+            samples = generate_synthetic_series(
+                duration_s=args.duration_s,
+                sample_rate=args.sample_rate,
+                components=components,
+                noise_std=args.noise_std,
+            )
+            payload = {"samples": samples, "sample_rate": args.sample_rate, "duration_s": args.duration_s}
+            summary_msg = f"{len(samples)} samples"
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            print(f"Wrote synthetic data to {args.output} ({summary_msg})")
+        else:
+            _print_result(payload, as_json=args.json)
+    elif args.command == "normalize":
+        config = load_experiment_config(args.config)
+        validation = validate_config(config)
+        payload = validation.normalized
+        if args.include_messages:
+            payload = {
+                "normalized": validation.normalized,
+                "errors": validation.errors,
+                "warnings": validation.warnings,
+                "domain": validation.domain,
+            }
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            print(f"Wrote normalized config to {args.output}")
+        else:
+            _print_result(payload, as_json=args.json)
     elif args.command == "serve":
         app = create_app(registry_path=args.registry)
         try:

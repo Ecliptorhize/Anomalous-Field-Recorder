@@ -54,7 +54,9 @@ afr report data/processed/field-baseline
 # Inspect configs without running
 afr describe docs/experiments/clinical-lab.yml --json
 afr validate docs/experiments/clinical-lab.yml
-afr analyze data/raw/samples.csv --sample-rate 2000 --value-column voltage --json
+afr analyze data/raw/samples.csv --sample-rate 2000 --band 1 40 --notch 60 --output data/processed/samples-analysis.json
+afr synth --duration-s 2 --sample-rate 500 --component 10 0.5 --component 40 0.1 --output data/raw/synthetic.json
+afr normalize docs/experiments/field-baseline.yml --output docs/experiments/field-baseline.normalized.json
 afr version
 ```
 
