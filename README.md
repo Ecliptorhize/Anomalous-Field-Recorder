@@ -92,7 +92,7 @@ Processing will report domain and instrument details along with quality flags hi
 - **Signal analysis** – Synthetic sample generation during acquisition, band/notch filters, FFT-derived spectral summaries, anomaly scoring, and rich Markdown reports.
 - **Neuroscience bandpower** – Welch PSD-derived bandpower (delta/theta/alpha/beta/gamma) for EEG/LFP datasets is included in processed summaries and reports.
 - **Registry** – SQLite-backed run registry (`--registry path/to/db.sqlite`) plus `afr runs` to inspect history.
-- **API** – FastAPI service `afr serve --host 0.0.0.0 --port 8000` exposing `/health`, `/version`, `/validate`, `/acquire`, `/process`, `/report`, and `/runs`.
+- **API** – FastAPI service `afr serve --host 0.0.0.0 --port 8000` exposing `/health`, `/version`, `/validate`, `/normalize`, `/analyze`, `/synth`, `/acquire`, `/process`, `/report`, and `/runs`.
 - **Structured logging** – Enable JSON logs with `AFR_JSON_LOGS=true` or `--json-logs` on CLI.
 
 ## Usage Overview

@@ -62,10 +62,10 @@ def summarize_domain(config: Mapping[str, Any]) -> Dict[str, Any]:
     quality_flags = []
     if missing_required:
         quality_flags.append(f"missing required: {', '.join(missing_required)}")
+    else:
+        quality_flags.append("all required metadata present")
     if missing_suggested:
         quality_flags.append(f"missing suggested: {', '.join(missing_suggested)}")
-    if not quality_flags:
-        quality_flags.append("all required metadata present")
 
     instrument = (
         config.get("instrument")

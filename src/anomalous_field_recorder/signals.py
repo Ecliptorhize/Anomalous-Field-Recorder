@@ -101,9 +101,9 @@ def compute_bandpower(
 
     for name, (low, high) in bands.items():
         mask = (freqs >= low) & (freqs <= high)
-        bandpower[name] = float(np.trapz(psd[mask], freqs[mask])) if np.any(mask) else 0.0
+        bandpower[name] = float(np.trapezoid(psd[mask], freqs[mask])) if np.any(mask) else 0.0
 
-    total_power = float(np.trapz(psd, freqs)) if freqs.size else 0.0
+    total_power = float(np.trapezoid(psd, freqs)) if freqs.size else 0.0
     if total_power > 0:
         for name, power in list(bandpower.items()):
             bandpower[f"{name}_rel"] = power / total_power
@@ -210,8 +210,10 @@ def generate_multichannel_eeg(
         )
         channels.append(series)
 
-    # synthetic events every second starting at 0.5s
+    # synthetic events every second starting at 0.5s; ensure at least one event for short durations
     events = [t for t in np.arange(0.5, duration_s, 1.0)]
+    if not events and duration_s > 0:
+        events = [duration_s / 2.0]
     return channels, events
 
 
@@ -241,7 +243,12 @@ def apply_filters(
 
     if notch and notch < (sample_rate / 2.0):
         b, a = signal.iirnotch(notch, 30, sample_rate)
-        filtered = signal.filtfilt(b, a, filtered)
+        max_taps = max(len(a), len(b))
+        min_length = 3 * max_taps
+        if filtered.size > min_length:
+            filtered = signal.filtfilt(b, a, filtered)
+        else:
+            filtered = signal.lfilter(b, a, filtered)
 
     return filtered.tolist()
 
