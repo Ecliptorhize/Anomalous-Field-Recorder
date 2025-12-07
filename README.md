@@ -57,6 +57,7 @@ afr validate docs/experiments/clinical-lab.yml
 afr analyze data/raw/samples.csv --sample-rate 2000 --band 1 40 --notch 60 --output data/processed/samples-analysis.json
 afr synth --duration-s 2 --sample-rate 500 --component 10 0.5 --component 40 0.1 --output data/raw/synthetic.json
 afr normalize docs/experiments/field-baseline.yml --output docs/experiments/field-baseline.normalized.json
+afr stream --config docs/configs/realtime-sqlite.yaml --duration-s 5 --json
 afr version
 ```
 
@@ -94,6 +95,17 @@ Processing will report domain and instrument details along with quality flags hi
 - **Registry** – SQLite-backed run registry (`--registry path/to/db.sqlite`) plus `afr runs` to inspect history.
 - **API** – FastAPI service `afr serve --host 0.0.0.0 --port 8000` exposing `/health`, `/version`, `/validate`, `/normalize`, `/analyze`, `/synth`, `/acquire`, `/process`, `/report`, and `/runs`.
 - **Structured logging** – Enable JSON logs with `AFR_JSON_LOGS=true` or `--json-logs` on CLI.
+
+## Real-Time Anomaly Platform
+
+AFR now ships with a modular, streaming-oriented architecture:
+
+- **Streaming daemon** – `afr stream --config docs/configs/realtime-sqlite.yaml` spins up `StreamingService`, which buffers live samples, applies a `RealTimeFilterChain`, and forwards windows into the anomaly engine.
+- **Pluggable detectors** – Unified `AnomalyEngine` accepts detectors declared in YAML (z-score, spectral bandpower, CUSUM change-point, PyTorch autoencoder). Add your own by registering factories on `AnomalyEngine`.
+- **Storage abstraction** – `SQLiteBackend` for lightweight local storage and a `TimescaleBackend` (optional `psycopg2-binary`) for high-throughput deployments. Events are also forwarded through registry plugins for traceability.
+- **Dashboard/API** – A minimal FastAPI dashboard (`afr.dashboard.create_dashboard_app`) exposes recent events; embed alongside the main service for quick visibility.
+- **Config-first** – See `docs/configs/realtime-sqlite.yaml` and `docs/configs/realtime-timescale.yaml` for end-to-end YAML examples covering filters, detectors, and storage.
+- **Extras** – Install optional integrations with `pip install .[timescale,torch]` to enable the TimescaleDB backend and the PyTorch autoencoder detector.
 
 ## Usage Overview
 

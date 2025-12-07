@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Any, Sequence
 
+import yaml
+
 from . import __version__
 from .config import load_experiment_config, validate_config, validate_config_file
 from .logging_utils import configure_logging
@@ -25,6 +27,9 @@ from .signals import (
     ingest_samples,
     score_anomalies,
 )
+from afr.streaming.service import StreamingService
+from afr.registry.plugins.base import NullRegistryPlugin, SqliteRegistryPlugin
+from afr.storage.sqlite import SQLiteBackend
 
 
 def _print_result(result: Any, as_json: bool) -> None:
@@ -32,6 +37,19 @@ def _print_result(result: Any, as_json: bool) -> None:
         print(json.dumps(result, indent=2))
     else:
         print(result)
+
+
+def _load_yaml_or_json(path: Path) -> dict:
+    if not path.exists():
+        raise SystemExit(f"Config file not found: {path}")
+    text = path.read_text(encoding="utf-8")
+    try:
+        return yaml.safe_load(text) or {}
+    except yaml.YAMLError:
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise SystemExit(f"Failed to parse config {path}: {exc}") from exc
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -117,6 +135,12 @@ def build_parser() -> argparse.ArgumentParser:
     serve = subparsers.add_parser("serve", help="Run FastAPI service")
     serve.add_argument("--host", default="0.0.0.0")
     serve.add_argument("--port", type=int, default=8000)
+
+    stream = subparsers.add_parser("stream", help="Run real-time streaming anomaly detection")
+    stream.add_argument("--config", type=Path, required=True, help="YAML config describing streaming pipeline")
+    stream.add_argument("--duration-s", type=float, help="Duration in seconds to run (optional)")
+    stream.add_argument("--max-batches", type=int, help="Maximum batches to process (optional)")
+    stream.add_argument("--json", action="store_true", help="Emit detections as JSON")
 
     runs = subparsers.add_parser("runs", help="List recent runs from the registry")
     runs.add_argument("--limit", type=int, default=20)
@@ -262,6 +286,29 @@ def main(argv: Sequence[str] | None = None) -> None:
         except ModuleNotFoundError:
             raise SystemExit("uvicorn is required to run the service. Install with `pip install uvicorn`.")
         uvicorn.run(app, host=args.host, port=args.port)
+    elif args.command == "stream":
+        cfg = _load_yaml_or_json(args.config)
+        storage_cfg = cfg.get("storage", {}) if isinstance(cfg, dict) else {}
+        storage_path = storage_cfg.get("path")
+        timescale_cfg = storage_cfg.get("timescale", {}) if isinstance(storage_cfg, dict) else {}
+        storage = SQLiteBackend(storage_path) if storage_path else None
+        if timescale_cfg.get("dsn"):
+            try:
+                from afr.storage.timescale import TimescaleBackend
+            except ModuleNotFoundError as exc:  # pragma: no cover - optional extra
+                raise SystemExit("Install psycopg2-binary to use the Timescale backend") from exc
+            storage = TimescaleBackend(timescale_cfg["dsn"])
+        plugin = NullRegistryPlugin()
+        if args.registry:
+            storage = storage or SQLiteBackend(args.registry)
+            plugin = SqliteRegistryPlugin(args.registry, domain=cfg.get("domain", "unknown"))
+        service = StreamingService.create_from_config(cfg, storage=storage, registry_plugin=plugin)
+        detections = service.run(max_batches=args.max_batches, duration_s=args.duration_s)
+        anomalies = [d.as_dict() for d in detections if d.is_anomaly]
+        if args.json:
+            _print_result({"anomalies": anomalies, "total": len(anomalies)}, as_json=True)
+        else:
+            print(f"Streaming run completed with {len(anomalies)} anomalies detected")
     elif args.command == "runs":
         if not args.registry:
             raise SystemExit("Specify --registry to read runs.")
