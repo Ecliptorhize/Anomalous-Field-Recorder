@@ -8,6 +8,8 @@ from .streaming.filters import RealTimeFilterChain
 from .streaming.processor import RealTimeProcessor
 from .storage.base import StorageBackend
 from .storage.sqlite import SQLiteBackend
+from .pipeline import PipelineConfig, run_pipeline
+from .sensors import SimulatedSensor
 
 __all__ = [
     "AnomalyEngine",
@@ -19,4 +21,7 @@ __all__ = [
     "RealTimeProcessor",
     "StorageBackend",
     "SQLiteBackend",
+    "PipelineConfig",
+    "run_pipeline",
+    "SimulatedSensor",
 ]

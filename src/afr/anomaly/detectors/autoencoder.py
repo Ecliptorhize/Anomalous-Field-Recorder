@@ -14,15 +14,20 @@ except ModuleNotFoundError:  # pragma: no cover - fallback when torch unavailabl
     nn = None
 
 
-class _TinyAutoencoder(nn.Module):  # type: ignore[misc]
-    def __init__(self, input_dim: int, encoding_dim: int) -> None:
-        super().__init__()
-        self.encoder = nn.Sequential(nn.Linear(input_dim, encoding_dim), nn.ReLU())
-        self.decoder = nn.Sequential(nn.Linear(encoding_dim, input_dim))
+if nn is not None:
+    class _TinyAutoencoder(nn.Module):  # type: ignore[misc]
+        def __init__(self, input_dim: int, encoding_dim: int) -> None:
+            super().__init__()
+            self.encoder = nn.Sequential(nn.Linear(input_dim, encoding_dim), nn.ReLU())
+            self.decoder = nn.Sequential(nn.Linear(encoding_dim, input_dim))
 
-    def forward(self, x):  # type: ignore[override]
-        latent = self.encoder(x)
-        return self.decoder(latent)
+        def forward(self, x):  # type: ignore[override]
+            latent = self.encoder(x)
+            return self.decoder(latent)
+else:  # pragma: no cover - torch not available
+    class _TinyAutoencoder:  # type: ignore[misc]
+        def __init__(self, input_dim: int, encoding_dim: int) -> None:
+            raise ImportError("torch is required for AutoencoderDetector")
 
 
 class AutoencoderDetector(BaseDetector):

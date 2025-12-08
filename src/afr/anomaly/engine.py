@@ -151,6 +151,18 @@ from .detectors.statistical_zscore import StatisticalZScoreDetector  # noqa: E40
 from .detectors.spectral_bandpower import SpectralBandpowerDetector  # noqa: E402
 from .detectors.change_point import ChangePointDetector  # noqa: E402
 from .detectors.autoencoder import AutoencoderDetector  # noqa: E402
+from ..detection.statistical import MADDetector, RollingMeanVarianceDetector  # noqa: E402
+from ..detection.machine_learning import IsolationForestDetector, OneClassSVMDetector  # noqa: E402
+
+
+def _safe(factory: Callable[[Mapping[str, Any]], BaseDetector]) -> Callable[[Mapping[str, Any]], BaseDetector]:
+    def wrapper(cfg: Mapping[str, Any]) -> BaseDetector:
+        try:
+            return factory(cfg)
+        except ImportError as exc:  # pragma: no cover - optional dependency path
+            raise ValueError(str(exc)) from exc
+
+    return wrapper
 
 
 def _register_defaults() -> None:
@@ -209,6 +221,44 @@ def _register_defaults() -> None:
             encoding_dim=cfg.get("encoding_dim", 8),
             epochs=cfg.get("epochs", 10),
             name=cfg.get("name", "autoencoder"),
+        ),
+    )
+    AnomalyEngine.register_detector(
+        "mad",
+        lambda cfg: MADDetector(
+            threshold=cfg.get("threshold", 3.5),
+            name=cfg.get("name", "mad"),
+        ),
+    )
+    AnomalyEngine.register_detector(
+        "rolling_mean_variance",
+        lambda cfg: RollingMeanVarianceDetector(
+            threshold=cfg.get("threshold", 3.0),
+            window=cfg.get("window", 128),
+            name=cfg.get("name", "rolling_mean_variance"),
+        ),
+    )
+    AnomalyEngine.register_detector(
+        "isolation_forest",
+        _safe(
+            lambda cfg: IsolationForestDetector(
+                contamination=cfg.get("contamination", 0.05),
+                n_estimators=cfg.get("n_estimators", 100),
+                threshold=cfg.get("threshold", 0.0),
+                name=cfg.get("name", "isolation_forest"),
+            )
+        ),
+    )
+    AnomalyEngine.register_detector(
+        "one_class_svm",
+        _safe(
+            lambda cfg: OneClassSVMDetector(
+                kernel=cfg.get("kernel", "rbf"),
+                nu=cfg.get("nu", 0.05),
+                gamma=cfg.get("gamma", "scale"),
+                threshold=cfg.get("threshold", 0.0),
+                name=cfg.get("name", "one_class_svm"),
+            )
         ),
     )
 

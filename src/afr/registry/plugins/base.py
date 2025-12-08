@@ -6,8 +6,6 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
-from anomalous_field_recorder.registry import record_run
-
 logger = logging.getLogger(__name__)
 
 
@@ -58,6 +56,8 @@ class SqliteRegistryPlugin(RegistryPlugin):
         self.domain = domain
 
     def on_detection(self, result, window) -> None:
+        from anomalous_field_recorder.registry import record_run  # local import to avoid circulars
+
         record_run(
             self.db_path,
             kind="anomaly",
