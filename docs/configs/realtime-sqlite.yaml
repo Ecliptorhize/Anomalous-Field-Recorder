@@ -1,0 +1,21 @@
+streaming:
+  sample_rate: 256.0
+  window_size: 256
+  step_size: 64
+  interval_ms: 100
+filters:
+  band: [1.0, 40.0]
+  notch: 60.0
+  rms_window: 8
+engine:
+  detectors:
+    - type: zscore
+      threshold: 3.0
+      name: zscore_fast
+    - type: bandpower
+      threshold: 0.25
+      target_bands: ["beta_rel", "gamma_rel"]
+    - type: changepoint
+      threshold: 4.0
+storage:
+  path: data/registry/streaming.sqlite

@@ -1,0 +1,27 @@
+sample_rate: 200.0
+window_size: 256
+stride: 128
+report_title: "AFR Example Pipeline"
+
+filters:
+  - type: bandpass
+    band: [1, 40]
+    order: 4
+  - type: notch
+    frequency: 60
+    quality: 30
+  - type: smoothing
+    window: 5
+
+detectors:
+  - type: zscore
+    threshold: 3.5
+    window: 200
+  - type: mad
+    threshold: 3.5
+  - type: rolling_mean_variance
+    threshold: 3.0
+    window: 128
+  - type: isolation_forest
+    contamination: 0.05
+    threshold: 0.0

@@ -22,6 +22,10 @@ from .signals import (
     score_anomalies,
 )
 from .service import create_app
+from afr.anomaly.engine import AnomalyEngine, DetectionResult
+from afr.streaming.service import StreamingService
+from afr.storage.sqlite import SQLiteBackend
+from afr.storage.timescale import TimescaleBackend
 
 try:
     __version__ = metadata.version("anomalous-field-recorder")
@@ -53,5 +57,10 @@ __all__ = [
     "purge_runs",
     "create_app",
     "summarize_domain",
+    "AnomalyEngine",
+    "DetectionResult",
+    "StreamingService",
+    "SQLiteBackend",
+    "TimescaleBackend",
     "__version__",
 ]

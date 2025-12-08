@@ -16,16 +16,22 @@ dependencies = [
     "scipy>=1.11",
     "pandas>=2.1",
     "matplotlib>=3.8",
+    "pydantic>=2.6",
+    "scikit-learn>=1.3",
+    "jinja2>=3.1",
     "fastapi>=0.110",
     "uvicorn>=0.23",
     "httpx>=0.24",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
+timescale = ["psycopg2-binary>=2.9"]
+torch = ["torch>=2.1"]
 
 [project.scripts]
-afr = "anomalous_field_recorder.cli:main"
+afr = "afr.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -33,3 +39,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.poetry.scripts]
+afr = "afr.cli:main"

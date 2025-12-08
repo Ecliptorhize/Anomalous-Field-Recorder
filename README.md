@@ -41,24 +41,36 @@ Notebook references:
 
 ### CLI Quickstart
 
-The `afr` CLI bundles acquisition, processing, reporting, and metadata inspection:
+The new `afr` CLI wraps the end-to-end pipeline (acquire → preprocess → filter → detect → report):
 
 ```bash
-# Simulate acquisition
-afr acquire docs/experiments/field-baseline.yml data/raw/field-baseline
+# Generate synthetic data (noise + injected anomalies)
+afr simulate --duration 30s --sample-rate 200 --output datasets/simulated.csv --plot data/plots/simulated.png
 
-# Process and report
-afr process data/raw/field-baseline data/processed/field-baseline
-afr report data/processed/field-baseline
+# Record (simulated) from a YAML config describing the sensor parameters
+afr record --config docs/configs/simulated.yaml --output data/raw/run01.csv
 
-# Inspect configs without running
-afr describe docs/experiments/clinical-lab.yml --json
-afr validate docs/experiments/clinical-lab.yml
-afr analyze data/raw/samples.csv --sample-rate 2000 --band 1 40 --notch 60 --output data/processed/samples-analysis.json
-afr synth --duration-s 2 --sample-rate 500 --component 10 0.5 --component 40 0.1 --output data/raw/synthetic.json
-afr normalize docs/experiments/field-baseline.yml --output docs/experiments/field-baseline.normalized.json
-afr version
+# Run the offline pipeline and emit JSON + Markdown + PDF reports
+afr process data/raw/run01.csv --config docs/configs/pipeline.yaml --output data/reports/run01
+
+# Summarize an existing result.json
+afr report data/reports/run01/result.json
 ```
+
+## Processing Pipeline (Acquire → Preprocess → Filter → Detect → Report)
+
+- **Pipeline core** – `src/afr/pipeline.py` loads CSV datasets, interpolates gaps, applies a configurable filter chain, runs multiple detectors, and writes `result.json`, `report.md`, and a plotted `report.pdf`.
+- **Filters** – Butterworth (low/high/band), notch, bandpass, and smoothing filters live in `src/afr/filters/`. Compose them via YAML/JSON config and reuse them in the real-time stack.
+- **Validated models** – Pydantic-backed `Recording`, `RecordingMetadata`, and `AnomalyEvent` models enforce clean inputs and make JSON outputs predictable.
+- **Detectors** – Statistical: z-score, rolling mean/variance drift, MAD. ML: IsolationForest, One-Class SVM, PyTorch autoencoder. All are available through config or directly via the anomaly engine registry.
+- **Config** – Use `PipelineConfig` to set `sample_rate`, `window_size`, `stride`, `filters`, and `detectors`. See `docs/configs/pipeline.yaml` (add your own) for a ready-to-run template.
+- **Reports** – Markdown + PDF plots (raw/filtered traces with anomaly markers) plus structured JSON for downstream tooling.
+
+## Virtual Sensors and Sample Data
+
+- Use `afr simulate` or `afr record` to generate realistic streams without hardware. The simulator supports adjustable sample rates, noise, and anomaly injection, and can export quick-look PNGs.
+- The `datasets/` folder ships with `synthetic_1.csv` and `synthetic_2.csv` so contributors can run the pipeline immediately.
+- For notebooks or batch jobs, import `SimulatedSensor` from `afr.sensors` to produce DataFrames and live streams programmatically.
 
 ## Repository Structure
 
@@ -94,6 +106,17 @@ Processing will report domain and instrument details along with quality flags hi
 - **Registry** – SQLite-backed run registry (`--registry path/to/db.sqlite`) plus `afr runs` to inspect history.
 - **API** – FastAPI service `afr serve --host 0.0.0.0 --port 8000` exposing `/health`, `/version`, `/validate`, `/normalize`, `/analyze`, `/synth`, `/acquire`, `/process`, `/report`, and `/runs`.
 - **Structured logging** – Enable JSON logs with `AFR_JSON_LOGS=true` or `--json-logs` on CLI.
+
+## Real-Time Anomaly Platform
+
+AFR now ships with a modular, streaming-oriented architecture:
+
+- **Streaming daemon** – `afr stream --config docs/configs/realtime-sqlite.yaml` spins up `StreamingService`, which buffers live samples, applies a `RealTimeFilterChain`, and forwards windows into the anomaly engine.
+- **Pluggable detectors** – Unified `AnomalyEngine` accepts detectors declared in YAML (z-score, spectral bandpower, CUSUM change-point, PyTorch autoencoder). Add your own by registering factories on `AnomalyEngine`.
+- **Storage abstraction** – `SQLiteBackend` for lightweight local storage and a `TimescaleBackend` (optional `psycopg2-binary`) for high-throughput deployments. Events are also forwarded through registry plugins for traceability.
+- **Dashboard/API** – FastAPI dashboard (`afr.dashboard.create_dashboard_app`) now serves a lightweight ECharts view over WebSockets (live charts + anomaly flags), dataset browser, and run history endpoints. Embed alongside the main service for quick visibility.
+- **Config-first** – See `docs/configs/realtime-sqlite.yaml` and `docs/configs/realtime-timescale.yaml` for end-to-end YAML examples covering filters, detectors, and storage.
+- **Extras** – Install optional integrations with `pip install .[timescale,torch]` to enable the TimescaleDB backend and the PyTorch autoencoder detector.
 
 ## Usage Overview
 

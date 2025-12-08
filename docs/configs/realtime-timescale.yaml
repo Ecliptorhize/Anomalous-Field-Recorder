@@ -1,0 +1,20 @@
+streaming:
+  sample_rate: 512.0
+  window_size: 512
+  step_size: 128
+  interval_ms: 100
+filters:
+  band: [0.5, 80.0]
+  notch: 50.0
+engine:
+  detectors:
+    - type: zscore
+      threshold: 3.5
+    - type: bandpower
+      threshold: 0.3
+      target_bands: ["beta_rel", "gamma_rel"]
+    - type: autoencoder
+      threshold: 0.05
+storage:
+  timescale:
+    dsn: postgresql://afr:afr@localhost:5432/afr
