@@ -3,10 +3,14 @@ streaming:
   window_size: 256
   step_size: 64
   interval_ms: 100
+  backpressure_strategy: sleep
 filters:
   band: [1.0, 40.0]
   notch: 60.0
   rms_window: 8
+source:
+  type: simulated
+  batch_size: 128
 engine:
   detectors:
     - type: zscore
@@ -17,5 +21,36 @@ engine:
       target_bands: ["beta_rel", "gamma_rel"]
     - type: changepoint
       threshold: 4.0
+    - type: adaptive_threshold
+      k_sigma: 3.5
+    - type: matrix_profile
+      m: 32
+      threshold: 6.0
+    - type: spectral_kurtosis
+      threshold: 12.0
+    - type: ensemble
+      vote: majority
+      detectors:
+        - type: zscore
+          threshold: 3.0
+        - type: adaptive_threshold
+          k_sigma: 3.0
 storage:
   path: data/registry/streaming.sqlite
+alerts:
+  rules:
+    - name: high_mean
+      metric: mean
+      threshold: 2.0
+      comparison: gt
+      hysteresis: 0.2
+    - name: anomaly_score
+      metric: detection:zscore_fast
+      threshold: 4.0
+      comparison: gt
+  channels:
+    - type: log
+health:
+  mean_drift_tol: 5.0
+  std_ceiling: 5.0
+  min_sample_rate: 200.0

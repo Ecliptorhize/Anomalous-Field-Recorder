@@ -1,0 +1,35 @@
+streaming:
+  sample_rate: 200.0
+  window_size: 256
+  step_size: 64
+  interval_ms: 200
+  backpressure_strategy: drop
+source:
+  type: mqtt
+  host: localhost
+  port: 1883
+  topic: sensors/afr
+  batch_size: 128
+filters:
+  band: [0.5, 50.0]
+  notch: 60.0
+engine:
+  detectors:
+    - type: zscore
+      threshold: 3.0
+    - type: adaptive_threshold
+      k_sigma: 3.0
+    - type: spectral_kurtosis
+      threshold: 10.0
+storage:
+  path: data/registry/streaming-mqtt.sqlite
+alerts:
+  rules:
+    - name: kurtosis_burst
+      metric: detection:spectral_kurtosis
+      threshold: 10.0
+  channels:
+    - type: log
+health:
+  mean_drift_tol: 2.0
+  std_ceiling: 4.0
