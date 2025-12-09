@@ -55,6 +55,9 @@ afr process data/raw/run01.csv --config docs/configs/pipeline.yaml --output data
 
 # Summarize an existing result.json
 afr report data/reports/run01/result.json
+
+# Bundle a processed run (reports + manifest) into a zip
+afr export-run data/reports/run01 --formats csv parquet --output data/exports/run01.zip
 ```
 
 ## Processing Pipeline (Acquire → Preprocess → Filter → Detect → Report)
@@ -112,11 +115,34 @@ Processing will report domain and instrument details along with quality flags hi
 AFR now ships with a modular, streaming-oriented architecture:
 
 - **Streaming daemon** – `afr stream --config docs/configs/realtime-sqlite.yaml` spins up `StreamingService`, which buffers live samples, applies a `RealTimeFilterChain`, and forwards windows into the anomaly engine.
+- **Ingestion adapters** – MQTT/WebSocket/CSV-tail/simulated sources are available via config (`source.type`). Optional hot-reload picks up config changes without restarts and backpressure controls (`backpressure_strategy`).
 - **Pluggable detectors** – Unified `AnomalyEngine` accepts detectors declared in YAML (z-score, spectral bandpower, CUSUM change-point, PyTorch autoencoder). Add your own by registering factories on `AnomalyEngine`.
+- **Expanded detectors** – Adaptive threshold, matrix profile discord finder, spectral kurtosis, and ensemble voters (any/majority/all) are available alongside statistical/ML baselines.
 - **Storage abstraction** – `SQLiteBackend` for lightweight local storage and a `TimescaleBackend` (optional `psycopg2-binary`) for high-throughput deployments. Events are also forwarded through registry plugins for traceability.
-- **Dashboard/API** – FastAPI dashboard (`afr.dashboard.create_dashboard_app`) now serves a lightweight ECharts view over WebSockets (live charts + anomaly flags), dataset browser, and run history endpoints. Embed alongside the main service for quick visibility.
-- **Config-first** – See `docs/configs/realtime-sqlite.yaml` and `docs/configs/realtime-timescale.yaml` for end-to-end YAML examples covering filters, detectors, and storage.
+- **Dashboard/API** – FastAPI dashboard (`afr.dashboard.create_dashboard_app`) now serves richer multi-channel charts, spectrogram heatmaps, run history, metrics, and token-protected endpoints over WebSockets/HTTP.
+- **Config-first** – See `docs/configs/realtime-sqlite.yaml`, `docs/configs/realtime-timescale.yaml`, and `docs/configs/realtime-mqtt.yaml` for end-to-end YAML examples covering filters, detectors, and storage.
 - **Extras** – Install optional integrations with `pip install .[timescale,torch]` to enable the TimescaleDB backend and the PyTorch autoencoder detector.
+
+Example alert/health block to pair with a streaming config:
+
+```yaml
+alerts:
+  rules:
+    - name: mean_drift
+      metric: mean
+      threshold: 1.0
+      comparison: gt
+      hysteresis: 0.1
+    - name: spectral_burst
+      metric: detection:spectral_kurtosis
+      threshold: 8.0
+  channels:
+    - type: log
+health:
+  mean_drift_tol: 2.0
+  std_ceiling: 3.0
+  min_sample_rate: 128.0
+```
 
 ## Usage Overview
 

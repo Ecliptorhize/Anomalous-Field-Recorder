@@ -151,6 +151,10 @@ from .detectors.statistical_zscore import StatisticalZScoreDetector  # noqa: E40
 from .detectors.spectral_bandpower import SpectralBandpowerDetector  # noqa: E402
 from .detectors.change_point import ChangePointDetector  # noqa: E402
 from .detectors.autoencoder import AutoencoderDetector  # noqa: E402
+from .detectors.adaptive_threshold import AdaptiveThresholdDetector  # noqa: E402
+from .detectors.matrix_profile import MatrixProfileDetector  # noqa: E402
+from .detectors.spectral_kurtosis import SpectralKurtosisDetector  # noqa: E402
+from .detectors.ensemble import build_ensemble_from_config  # noqa: E402
 from ..detection.statistical import MADDetector, RollingMeanVarianceDetector  # noqa: E402
 from ..detection.machine_learning import IsolationForestDetector, OneClassSVMDetector  # noqa: E402
 
@@ -213,6 +217,33 @@ def _register_defaults() -> None:
             drift=cfg.get("drift", 0.0),
             name=cfg.get("name", "changepoint"),
         ),
+    )
+    AnomalyEngine.register_detector(
+        "adaptive_threshold",
+        lambda cfg: AdaptiveThresholdDetector(
+            alpha=cfg.get("alpha", 0.1),
+            k_sigma=cfg.get("k_sigma", 3.0),
+            name=cfg.get("name", "adaptive_threshold"),
+        ),
+    )
+    AnomalyEngine.register_detector(
+        "matrix_profile",
+        lambda cfg: MatrixProfileDetector(
+            m=cfg.get("m", 32),
+            threshold=cfg.get("threshold", 5.0),
+            name=cfg.get("name", "matrix_profile"),
+        ),
+    )
+    AnomalyEngine.register_detector(
+        "spectral_kurtosis",
+        lambda cfg: SpectralKurtosisDetector(
+            threshold=cfg.get("threshold", 5.0),
+            name=cfg.get("name", "spectral_kurtosis"),
+        ),
+    )
+    AnomalyEngine.register_detector(
+        "ensemble",
+        lambda cfg: build_ensemble_from_config(cfg),
     )
     AnomalyEngine.register_detector(
         "autoencoder",

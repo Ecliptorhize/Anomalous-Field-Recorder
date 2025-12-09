@@ -13,12 +13,11 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from .detection import (
-    MADDetector,
-    RollingMeanVarianceDetector,
-    ZScoreDetector,
-)
+from .detection import MADDetector, RollingMeanVarianceDetector, ZScoreDetector
 from .detection.machine_learning import AutoencoderDetector, IsolationForestDetector, OneClassSVMDetector
+from .anomaly.detectors.adaptive_threshold import AdaptiveThresholdDetector
+from .anomaly.detectors.matrix_profile import MatrixProfileDetector
+from .anomaly.detectors.spectral_kurtosis import SpectralKurtosisDetector
 from .filters import FilterChain
 from .models import AnomalyEvent, Recording, RecordingMetadata
 from .reporting import render_markdown_report, write_pdf_report
@@ -140,6 +139,12 @@ def _build_detectors(config: Iterable[Mapping[str, object]]) -> list[Any]:
                 detectors.append(RollingMeanVarianceDetector(**params))
             elif det_type in {"mad", "median_absolute_deviation"}:
                 detectors.append(MADDetector(**params))
+            elif det_type in {"adaptive_threshold", "adaptive"}:
+                detectors.append(AdaptiveThresholdDetector(**params))
+            elif det_type in {"matrix_profile", "discord"}:
+                detectors.append(MatrixProfileDetector(**params))
+            elif det_type in {"spectral_kurtosis", "kurtosis"}:
+                detectors.append(SpectralKurtosisDetector(**params))
             elif det_type in {"iforest", "isolation_forest"}:
                 detectors.append(IsolationForestDetector(**params))
             elif det_type in {"ocsvm", "one_class_svm", "one-class-svm"}:

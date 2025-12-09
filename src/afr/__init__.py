@@ -10,6 +10,7 @@ from .storage.base import StorageBackend
 from .storage.sqlite import SQLiteBackend
 from .pipeline import PipelineConfig, run_pipeline
 from .sensors import SimulatedSensor
+from .export import export_run
 
 __all__ = [
     "AnomalyEngine",
@@ -24,4 +25,5 @@ __all__ = [
     "PipelineConfig",
     "run_pipeline",
     "SimulatedSensor",
+    "export_run",
 ]
