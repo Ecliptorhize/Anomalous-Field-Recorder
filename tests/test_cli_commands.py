@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pandas as pd
+import pytest
+
 from anomalous_field_recorder import cli
 
 
@@ -84,3 +87,23 @@ def test_cli_normalize_writes_defaults(tmp_path: Path) -> None:
     assert payload["normalized"]["panel"] == "unspecified"
     assert payload["domain"] == "clinical_lab"
     assert payload["errors"] == []
+
+
+def test_cli_profile_generates_dataset_profile(tmp_path: Path) -> None:
+    dataset_path = tmp_path / "dataset.csv"
+    df = pd.DataFrame(
+        {
+            "timestamp": pd.date_range("2024-01-01", periods=3, freq="500ms"),
+            "value": [1.0, 2.0, 3.0],
+            "anomaly": [0, 1, 0],
+        }
+    )
+    df.to_csv(dataset_path, index=False)
+    output_path = tmp_path / "profile.json"
+
+    cli.main(["profile", str(dataset_path), "--output", str(output_path), "--json"])
+
+    profile = json.loads(output_path.read_text(encoding="utf-8"))
+    assert profile["rows"] == 3
+    assert profile["anomalies"]["flagged"] == 1
+    assert profile["sampling"]["inferred_sample_rate_hz"] == pytest.approx(2.0)

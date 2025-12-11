@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+import pandas as pd
+import pytest
 
 from anomalous_field_recorder import create_app
 
@@ -66,3 +68,25 @@ def test_service_normalize_endpoint_applies_defaults() -> None:
     assert payload["normalized"]["panel"] == "unspecified"
     assert payload["domain"] == "clinical_lab"
     assert payload["errors"] == []
+
+
+def test_service_profile_endpoint_returns_sampling_metadata(tmp_path) -> None:
+    app = create_app()
+    client = TestClient(app)
+    dataset_path = tmp_path / "dataset.csv"
+    df = pd.DataFrame(
+        {
+            "timestamp": pd.date_range("2024-01-01", periods=4, freq="1s"),
+            "value": [0.0, 1.0, 0.0, -1.0],
+            "anomaly": [0, 1, 0, 0],
+        }
+    )
+    df.to_csv(dataset_path, index=False)
+
+    resp = client.post("/profile", json={"path": str(dataset_path)})
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["rows"] == 4
+    assert payload["anomalies"]["flagged"] == 1
+    assert payload["sampling"]["inferred_sample_rate_hz"] == pytest.approx(1.0)

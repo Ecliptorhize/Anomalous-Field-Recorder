@@ -27,6 +27,7 @@ from .signals import (
     ingest_samples,
     score_anomalies,
 )
+from afr.data_profile import profile_dataset
 from afr.streaming.service import StreamingService
 from afr.registry.plugins.base import NullRegistryPlugin, SqliteRegistryPlugin
 from afr.storage.sqlite import SQLiteBackend
@@ -100,6 +101,14 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--anomaly-threshold", type=float, default=3.5, help="Z-score threshold for anomalies")
     analyze.add_argument("--output", type=Path, help="Optional path to write analysis JSON")
     analyze.add_argument("--json", action="store_true", help="Emit analysis as JSON")
+
+    profile = subparsers.add_parser("profile", help="Profile a dataset for missing data and sampling metadata")
+    profile.add_argument("dataset", type=Path, help="Path to CSV/JSON/Parquet dataset")
+    profile.add_argument("--timestamp-column", type=str, default="timestamp", help="Timestamp column for sampling inference")
+    profile.add_argument("--value-column", action="append", help="Numeric value column(s) to prioritize")
+    profile.add_argument("--sample-rate", type=float, help="Sample rate override when no timestamps are present")
+    profile.add_argument("--output", type=Path, help="Optional path to write profile JSON")
+    profile.add_argument("--json", action="store_true", help="Emit profile as JSON")
 
     synth = subparsers.add_parser("synth", help="Generate synthetic samples for testing")
     synth.add_argument("--duration-s", type=float, default=1.0, help="Duration of synthetic capture")
@@ -228,6 +237,19 @@ def main(argv: Sequence[str] | None = None) -> None:
             print(f"Wrote analysis to {args.output}")
         else:
             _print_result(analysis, as_json=args.json)
+    elif args.command == "profile":
+        profile = profile_dataset(
+            args.dataset,
+            timestamp_column=args.timestamp_column,
+            value_columns=args.value_column,
+            sample_rate=args.sample_rate,
+        )
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(profile, indent=2), encoding="utf-8")
+            print(f"Wrote dataset profile to {args.output}")
+        else:
+            _print_result(profile, as_json=args.json)
     elif args.command == "synth":
         if args.channels < 0:
             raise SystemExit("Number of channels cannot be negative.")
