@@ -50,6 +50,9 @@ afr simulate --duration 30s --sample-rate 200 --output datasets/simulated.csv --
 # Record (simulated) from a YAML config describing the sensor parameters
 afr record --config docs/configs/simulated.yaml --output data/raw/run01.csv
 
+# Inspect a dataset for missing data, sampling metadata, and anomaly flags
+afr profile datasets/simulated.csv --json
+
 # Run the offline pipeline and emit JSON + Markdown + PDF reports
 afr process data/raw/run01.csv --config docs/configs/pipeline.yaml --output data/reports/run01
 

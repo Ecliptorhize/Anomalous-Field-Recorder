@@ -22,6 +22,7 @@ from .signals import (
     generate_synthetic_series,
     score_anomalies,
 )
+from afr.data_profile import profile_dataset
 
 try:
     __version__ = metadata.version("anomalous-field-recorder")
@@ -106,6 +107,25 @@ def create_app(registry_path: str | Path | None = None) -> FastAPI:
             "anomalies": anomalies,
             "filters": {"band": band, "notch": notch},
         }
+
+    @app.post("/profile")
+    def profile(
+        path: str = Body(..., embed=True),
+        timestamp_column: str = Body("timestamp"),
+        sample_rate: float | None = Body(None),
+        value_columns: Optional[List[str]] = Body(None),
+    ) -> Dict[str, Any]:
+        try:
+            return profile_dataset(
+                path,
+                timestamp_column=timestamp_column,
+                sample_rate=sample_rate,
+                value_columns=value_columns,
+            )
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
     @app.post("/synth")
     def synth(

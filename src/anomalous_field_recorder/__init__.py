@@ -22,6 +22,7 @@ from .signals import (
     score_anomalies,
 )
 from .service import create_app
+from afr.data_profile import profile_dataset
 from afr.anomaly.engine import AnomalyEngine, DetectionResult
 from afr.streaming.service import StreamingService
 from afr.storage.sqlite import SQLiteBackend
@@ -48,6 +49,7 @@ __all__ = [
     "apply_filters",
     "ingest_samples",
     "score_anomalies",
+    "profile_dataset",
     "process_dataset",
     "simulate_acquisition",
     "generate_report",
